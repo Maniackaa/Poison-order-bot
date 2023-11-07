@@ -28,7 +28,7 @@ async def get_reply(message: Message, state: FSMContext, bot: Bot):
     msg = message.reply_to_message
     raw_order_id = message.text.lower().strip().split('отменить ')[-1]
     order_id = int(raw_order_id.strip())
-    order = get_order(order_id)
+    order = get_order_from_msg(msg.message_id)
     if order and order_id == order.id:
         await state.set_state(FSMManager.delete)
         await state.update_data(msg=msg, order_id=order_id)
