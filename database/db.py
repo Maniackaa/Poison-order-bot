@@ -188,6 +188,8 @@ settings_start = [
     ['tax2', 249, 'Обычная комиссия'],
     ['manager_id', conf.tg_bot.admin_ids[0], 'id менеджера'],
     ['pay_req', 'Реквизиты для оплаты', 'Реквизиты для оплаты'],
+    ['cny_currency', 12.69],
+    ['currency_last_update', '2023-04-01 08:03:26'],
 ]
 with session:
     settings = session.query(BotSettings).all()

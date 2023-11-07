@@ -8,17 +8,18 @@ from aiogram.types import BufferedInputFile, InputMediaPhoto
 from sqlalchemy import select, delete
 
 from config_data.bot_conf import get_my_loggers
-from database.db import Session, User, Order, BotSettings, Faq
+from database.db import Session, User, Order, BotSettings, Faq, Item
+from services.currency import get_currency_cny
 
 logger, err_log = get_my_loggers()
 
 
 def check_user(id):
     """Возвращает найденных пользователей по tg_id"""
-    logger.debug(f'Ищем юзера {id}')
+    # logger.debug(f'Ищем юзера {id}')
     with Session() as session:
         user: User = session.query(User).filter(User.tg_id == str(id)).first()
-        logger.debug(f'Результат: {user}')
+        # logger.debug(f'Результат: {user}')
         return user
 
 
@@ -27,12 +28,12 @@ def get_or_create_user(user) -> User:
     try:
         tg_id = user.id
         username = user.username
-        logger.debug(f'username {username}')
+        # logger.debug(f'username {username}')
         old_user = check_user(tg_id)
         if old_user:
-            logger.debug('Пользователь есть в базе')
+            # logger.debug('Пользователь есть в базе')
             return old_user
-        logger.debug('Добавляем пользователя')
+        # logger.debug('Добавляем пользователя')
         with Session() as session:
             new_user = User(tg_id=tg_id,
                             username=username,
@@ -69,15 +70,6 @@ def get_order_confirm_text(order: Order) -> str:
     return msg
 
 
-def get_cny_to_rub():
-    cny = 12.71
-    cny = cny + 0.5
-    cny = cny * 10
-    cny = math.ceil(cny)
-    cny = cny / 10
-    return cny
-
-
 def read_bot_settings(name: str) -> str:
     session = Session()
     with session:
@@ -86,10 +78,64 @@ def read_bot_settings(name: str) -> str:
     return result.value
 
 
+def save_bot_settings(name: str, value):
+    try:
+        session = Session()
+        with session:
+            q = select(BotSettings).where(BotSettings.name == name).limit(1)
+            option = session.execute(q).scalars().one_or_none()
+            option.value = str(value)
+            session.commit()
+            logger.debug(f'Обновлено {name} на {value}')
+            return True
+    except Exception as err:
+        logger.debug(f'Ошибка при сохранении {name}')
+
+
+def update_currency(cny):
+    save_bot_settings('cny_currency', cny)
+    save_bot_settings('currency_last_update', datetime.datetime.now())
+
+
+def get_cny_to_rub():
+    """
+    Возврщает курс для расчета.
+    Если курс не обовлялся более суток, то обновляется
+    """
+    try:
+        last_update = read_bot_settings('currency_last_update')
+        delta = datetime.datetime.now() - datetime.datetime.fromisoformat(last_update)
+        if delta.days <= 0:
+            cny = float(read_bot_settings('cny_currency'))
+        else:
+            cny = get_currency_cny()
+            update_currency(cny)
+        cny = cny + 0.5
+        cny = cny * 10
+        cny = math.ceil(cny)
+        cny = cny / 10
+        return cny
+    except Exception as err:
+        err_log.error(f'ошибка при обновлении курса: {err}')
+
+
 def get_tax(user: User) -> int:
     tax1 = int(read_bot_settings('tax1'))
     tax2 = int(read_bot_settings('tax2'))
     return tax1 if user.is_newbie else tax2
+
+
+def calc_cost(user, cost, shipping) -> float:
+    """
+    Расчет calc
+    """
+    total_cost = 0
+    tax = get_tax(user)
+    rub_cny = get_cny_to_rub()
+    total_cost += cost * rub_cny * 1.01
+    total_cost += shipping
+    total_cost += tax
+    return round(total_cost, 2)
 
 
 def get_total_cost(user: User) -> float:
@@ -122,6 +168,7 @@ def get_bucket_text(user: User) -> str:
         q = select(Order).where(Order.user_id == user.id).where(Order.status == 'temp')
         orders = session.execute(q).scalars().all()
         logger.debug(f'Заказы {user}: {orders}')
+        pay_req = read_bot_settings('pay_req')
         if orders:
             total_cost = get_total_cost(user)
             text = f'Итоговая стоимость: {total_cost}\n\n'
@@ -135,7 +182,7 @@ def get_bucket_text(user: User) -> str:
             text += f'Доставка по адресу:\n{user.address}\n'
             text += f'Фио получателя:\n{user.fio}\n'
             text += f'Номер получателя:\n{user.phone}\n\n'
-            text += 'Реквизиты для оплаты:\nLSKJDHNGV\n\n'
+            text += f'Реквизиты для оплаты:\n{pay_req}\n\n'
             text += 'После оплаты пришите чек'
             return text
         else:
@@ -242,6 +289,17 @@ def get_order(order_id) -> Order:
         order = session.execute(q).scalars().one_or_none()
         logger.debug(f'Найден заказ {order}')
         return order
+
+
+def get_item(item_id) -> Item:
+    """
+    Возвращает Item по id
+    """
+    session = Session()
+    with session:
+        q = select(Item).where(Item.id == item_id)
+        item = session.execute(q).scalars().one_or_none()
+        return item
 
 
 def cancel_order(order_id) -> bool:

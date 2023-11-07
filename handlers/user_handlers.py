@@ -91,3 +91,15 @@ async def answer(callback: CallbackQuery, state: FSMContext, bot: Bot):
     my_faq: Faq = get_faq(question_id)
     text = f'{my_faq.question}\n\n{my_faq.answer}'
     await callback.message.edit_text(text, reply_markup=custom_kb(1, Faq().menu_btn()))
+
+
+@router.callback_query(F.data == 'items')
+async def items(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    text = 'Ссылка на авито'
+    await callback.message.edit_text(text, reply_markup=start_kb)
+
+
+@router.callback_query(F.data == 'support')
+async def items(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    text = '@seleznev_tg'
+    await callback.message.edit_text(text, reply_markup=start_kb)
