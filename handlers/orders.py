@@ -185,10 +185,3 @@ async def order_pay_confirm(message: Message, state: FSMContext, bot: Bot):
 
     except Exception as err:
         logger.error(f'Ошибка при оплате: {err}')
-
-#
-# @router.callback_query(F.data == 'support')
-# async def test(callback: CallbackQuery, state: FSMContext, bot: Bot):
-#     print('test')
-#     user = get_or_create_user(callback.from_user)
-#     await send_orders_to_manager(user, bot)

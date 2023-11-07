@@ -16,7 +16,7 @@ def custom_kb(width: int, buttons_dict: dict) -> InlineKeyboardMarkup:
 
 
 start_kb_b = {
-    'Ответы на частые вопросы': 'qa',
+    'Ответы на частые вопросы': 'faq',
     'Товары в наличии': 'items',
     'Поддержка': 'support',
     'Калькулятор стоимости': 'calc',

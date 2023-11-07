@@ -9,13 +9,14 @@ from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy_utils.functions import database_exists, create_database
 
 from config_data.bot_conf import conf, get_my_loggers
 
 logger, err_log = get_my_loggers()
 
-engine = create_engine(f"postgresql+psycopg2://{conf.db.db_user}:{conf.db.db_password}@{conf.db.db_host}:{conf.db.db_port}/{conf.db.database}", echo=False)
-print(f"postgresql+psycopg2://{conf.db.db_user}:{conf.db.db_password}@{conf.db.db_host}:{conf.db.db_port}/{conf.db.database}")
+db_url = f"postgresql+psycopg2://{conf.db.db_user}:{conf.db.db_password}@{conf.db.db_host}:{conf.db.db_port}/{conf.db.database}"
+engine = create_engine(db_url, echo=False)
 Session = sessionmaker(bind=engine)
 
 
@@ -108,6 +109,7 @@ class Order(Base):
         except Exception as err:
             logger.error(f'{err}')
 
+
 class BotSettings(Base):
     __tablename__ = 'bot_settings'
     id: Mapped[int] = mapped_column(primary_key=True,
@@ -119,8 +121,45 @@ class BotSettings(Base):
                                              default='')
 
 
+class Faq(Base):
+    __tablename__ = 'faq'
+    id: Mapped[int] = mapped_column(primary_key=True,
+                                    autoincrement=True)
+    question: Mapped[str] = mapped_column(String(50))
+    answer: Mapped[str] = mapped_column(String(2000))
+
+    @staticmethod
+    def menu_btn():
+        _session = Session()
+        q = select(Faq)
+        _items = session.execute(q).scalars().all()
+        _buttons = {}
+        for _item in _items:
+            _buttons[f'{_item.question}'] = f'answer_{_item.id}'
+        _buttons['Назад'] = 'menu'
+        return _buttons
+
+
+if not database_exists(db_url):
+    create_database(db_url)
 Base.metadata.create_all(engine)
 
+faq_start = [
+    ['Вопрос 1', 'Ответ 1'],
+    ['Вопрос 2', 'Ответ 2'],
+    ]
+
+session = Session()
+with session:
+    faqs = session.query(Faq).all()
+    if not faqs:
+        for item in faq_start:
+            faq = Faq(
+                question=item[0],
+                answer=item[1],
+            )
+            session.add(faq)
+            session.commit()
 
 items_start = [
     ['Кроссовки', 1390],
@@ -147,7 +186,8 @@ with session:
 settings_start = [
     ['tax1', 99, 'Первая комиссия'],
     ['tax2', 249, 'Обычная комиссия'],
-    ['manager_id', 585896156, 'id менеджера'],
+    ['manager_id', conf.tg_bot.admin_ids[0], 'id менеджера'],
+    ['pay_req', 'Реквизиты для оплаты', 'Реквизиты для оплаты'],
 ]
 with session:
     settings = session.query(BotSettings).all()

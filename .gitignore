@@ -40,9 +40,7 @@ pip-delete-this-directory.txt
 *.log
 *.log.*
 
-./backend_deposit/collected_static/
-./backend_deposit/media/
-./backend_deposit/test/
+postgres/postgres-data/
 
 # Unit test / coverage reports
 htmlcov/

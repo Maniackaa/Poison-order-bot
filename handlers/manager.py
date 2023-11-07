@@ -59,7 +59,7 @@ async def delete(message: Message, state: FSMContext, bot: Bot):
         await state.clear()
     except Exception as err:
         err_log.error(f'Ошибка при отмене заказа: {err}')
-        await message.answer(f'Ошибка:')
+        await message.answer(f'Ошибка: {err}')
         await state.clear()
 
 
@@ -84,6 +84,7 @@ async def get_reply(message: Message, state: FSMContext, bot: Bot):
             await message.answer('Заказ не найден')
     except Exception as err:
         err_log.error(f'Ошибка при подтверждении заказа {raw_order_id}: {err}')
+        await message.answer(f'Ошиюка: {err}')
 
 
 

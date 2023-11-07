@@ -8,9 +8,9 @@ from aiogram.types import CallbackQuery, Message, URLInputFile
 from aiogram.fsm.context import FSMContext
 
 from config_data.bot_conf import get_my_loggers
-from database.db import User
-from keyboards.keyboards import start_kb, cart_kb
-from services.func import get_or_create_user, update_user, get_bucket_text
+from database.db import User, Faq
+from keyboards.keyboards import start_kb, cart_kb, custom_kb
+from services.func import get_or_create_user, update_user, get_bucket_text, get_faq
 
 logger, err_log = get_my_loggers()
 
@@ -23,12 +23,22 @@ class FSMUser(StatesGroup):
     address = State()
 
 
+@router.callback_query(F.data == 'menu')
+async def start(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    await state.clear()
+    tg_user = callback.from_user
+    user: User = get_or_create_user(tg_user)
+    text = 'Выберите действие:'
+    await callback.message.delete()
+    await callback.message.answer(text, reply_markup=start_kb)
+
+
 @router.message(Command(commands=["start"]))
 async def process_start_command(message: Message, state: FSMContext):
     await state.clear()
     tg_user = message.from_user
     user: User = get_or_create_user(tg_user)
-    text = 'Привет'
+    text = 'Выберите действие:'
     await message.answer(text, reply_markup=start_kb)
 
 
@@ -65,3 +75,19 @@ async def address(message: Message, state: FSMContext, bot: Bot):
     await state.clear()
     text = get_bucket_text(get_or_create_user(message.from_user))
     await message.answer(text, reply_markup=cart_kb)
+
+
+@router.callback_query(F.data == 'faq')
+async def faq(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    await callback.message.delete()
+    btn = Faq().menu_btn()
+    await callback.message.answer('Выберите вопроc:', reply_markup=custom_kb(1, btn))
+
+
+@router.callback_query(F.data.startswith('answer_'))
+async def answer(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    data = callback.data
+    question_id = int(data.split('answer_')[-1])
+    my_faq: Faq = get_faq(question_id)
+    text = f'{my_faq.question}\n\n{my_faq.answer}'
+    await callback.message.edit_text(text, reply_markup=custom_kb(1, Faq().menu_btn()))

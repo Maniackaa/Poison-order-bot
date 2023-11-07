@@ -8,7 +8,7 @@ from aiogram.types import BufferedInputFile, InputMediaPhoto
 from sqlalchemy import select, delete
 
 from config_data.bot_conf import get_my_loggers
-from database.db import Session, User, Order, BotSettings
+from database.db import Session, User, Order, BotSettings, Faq
 
 logger, err_log = get_my_loggers()
 
@@ -283,3 +283,11 @@ def get_order_from_msg(msg_id):
         order = session.execute(q).scalars().one_or_none()
         logger.debug(f'Найден заказ {order}')
         return order
+
+
+def get_faq(faq_id):
+    session = Session()
+    with session:
+        q = select(Faq).where(Faq.id == faq_id)
+        faq = session.execute(q).scalars().one_or_none()
+        return faq
