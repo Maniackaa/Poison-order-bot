@@ -10,6 +10,7 @@ from aiogram.fsm.context import FSMContext
 from config_data.bot_conf import get_my_loggers
 from database.db import User, Faq
 from keyboards.keyboards import start_kb, cart_kb, custom_kb
+from lexicon.lexicon import LEXICON
 from services.func import get_or_create_user, update_user, get_bucket_text, get_faq
 
 logger, err_log = get_my_loggers()
@@ -29,7 +30,8 @@ async def start(callback: CallbackQuery, state: FSMContext, bot: Bot):
     tg_user = callback.from_user
     user: User = get_or_create_user(tg_user)
     text = 'Выберите действие:'
-    await callback.message.delete()
+    # await callback.message.delete()
+    await callback.message.delete_reply_markup()
     await callback.message.answer(text, reply_markup=start_kb)
 
 
@@ -95,11 +97,11 @@ async def answer(callback: CallbackQuery, state: FSMContext, bot: Bot):
 
 @router.callback_query(F.data == 'items')
 async def items(callback: CallbackQuery, state: FSMContext, bot: Bot):
-    text = 'Ссылка на авито'
+    text = LEXICON.get('avito')
     await callback.message.edit_text(text, reply_markup=start_kb)
 
 
 @router.callback_query(F.data == 'support')
 async def items(callback: CallbackQuery, state: FSMContext, bot: Bot):
-    text = '@seleznev_tg'
+    text = LEXICON.get('support')
     await callback.message.edit_text(text, reply_markup=start_kb)

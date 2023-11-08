@@ -9,6 +9,7 @@ from aiogram.fsm.context import FSMContext
 from config_data.bot_conf import get_my_loggers
 from database.db import User, Item, Order
 from keyboards.keyboards import start_kb, custom_kb, cart_kb
+from lexicon import lexicon
 from services.func import get_or_create_user, get_order_confirm_text, get_bucket_text, get_cart_delete_kb_btn, \
     delete_order, update_pay_confirm, update_user, send_orders_to_manager, get_order, cancel_order, order_buy, \
     get_order_from_msg
@@ -51,6 +52,8 @@ async def delete(message: Message, state: FSMContext, bot: Bot):
         if order and order_id == order.id:
             cancel_text = f'Заказ {order_id} отменен:\n{reason}'
             await bot.send_message(chat_id=order.user.tg_id, text=cancel_text)
+            cancel_order(order_id)
+            await bot.send_message(chat_id=order.user.tg_id, text=lexicon.LEXICON.get('support'))
             cancel_order(order_id)
             await bot.delete_message(chat_id=msg.chat.id, message_id=msg.message_id)
             await message.answer(f'Заказ {order_id} отменен')

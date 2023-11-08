@@ -5,7 +5,7 @@ from aiogram import Dispatcher, types, Router, Bot, F
 from aiogram.enums import ContentType
 from aiogram.filters import Command, CommandStart, StateFilter, BaseFilter
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import CallbackQuery, Message, URLInputFile, BufferedInputFile
+from aiogram.types import CallbackQuery, Message, URLInputFile, BufferedInputFile, ReplyKeyboardRemove
 
 from aiogram.fsm.context import FSMContext
 
@@ -36,6 +36,16 @@ async def order_start(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(text, reply_markup=custom_kb(1, btn))
 
 
+@router.callback_query(F.data == 'calc_again')
+async def order_start(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.delete_reply_markup()
+    btn = Item().menu_btn()
+    await state.set_state(FSMCalc.selected)
+    text = '\n\nВыберите тип товара:'
+    await callback.message.answer(text, reply_markup=custom_kb(1, btn))
+
+
 @router.callback_query(F.data.startswith('item_'), StateFilter(FSMCalc.selected))
 async def order_item_selected(callback: CallbackQuery, state: FSMContext):
     data = callback.data
@@ -58,7 +68,8 @@ async def order_cost(message: Message, state: FSMContext, bot: Bot):
         text = item.name
         text += f'\nСтоимость товара: {cost} ¥'
         text += f'\n\nИтог: {calc} руб.'
-        await message.answer(text, reply_markup=start_kb)
-
+        kb = {"Ещё расчёт": "calc_again", "Оформить заказ": "cart", "Меню": "menu"}
+        await message.answer(text, reply_markup=custom_kb(1, kb))
+        await state.clear()
     except Exception as err:
         logger.error(err)

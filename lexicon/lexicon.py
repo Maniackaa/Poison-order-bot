@@ -5,8 +5,8 @@ LEXICON_COMMANDS_RU: dict[str, str] = {
 
 
 LEXICON: dict[str, str] = {
-    '/start': """
-Добрый день
-"""
+    '/start': "Добрый день",
+    'support': "Для связи с поддержкой напишете @seleznev_tg",
+    'avito': 'https://www.avito.ru/'
 }
 
